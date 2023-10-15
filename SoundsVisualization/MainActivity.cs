@@ -1,5 +1,8 @@
 
+using Android.Bluetooth;
 using Android.Media;
+using Spectrogram;
+using static Android.Provider.MediaStore;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -8,6 +11,7 @@ namespace SoundsVisualization {
         AudioRecord? audioSource;
         CheckBox? cbPause;
         int bufferSize;
+        SpectrogramGenerator? spectrogramGenerator;
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
@@ -29,12 +33,14 @@ namespace SoundsVisualization {
                 AudioSource.Mic,
                 44100,
                 ChannelIn.Mono,
-                Encoding.Pcm16bit,
+                Encoding.PcmFloat,
                 bufferSize);
 
             if(audioSource.State == Android.Media.State.Uninitialized) {
                 throw new Exception("Unable to successfully initialize AudioStream; reporting State.Uninitialized.  If using an emulator, make sure it has access to the system microphone.");
             }
+
+            spectrogramGenerator = new SpectrogramGenerator(audioSource.SampleRate, fftSize: 4096, stepSize: 500, maxFreq: 3000);
         }
 
         void Pause_Click(object? sender, EventArgs e) {
@@ -61,7 +67,7 @@ namespace SoundsVisualization {
         }
 
         void Record() {
-            byte[] data = new byte[bufferSize];
+            var audio = new float[bufferSize];
             int readFailureCount = 0;
             int readResult = 0;
 
@@ -75,12 +81,14 @@ namespace SoundsVisualization {
                         Stop();
                         break;
                     }
-
-                    readResult = audioSource.Read(data, 0, bufferSize); // this can block if there are no bytes to read
+                    
+                    readResult = audioSource.Read(audio, 0, bufferSize, 0); // this can block if there are no bytes to read
 
                     // readResult should == the # bytes read, except a few special cases
                     if(readResult > 0) {
                         readFailureCount = 0;
+
+                        spectrogramGenerator!.Add(audio.Select(x => (double)x));
                         //OnBroadcast?.Invoke(this, data);
 
                         System.Diagnostics.Debug.WriteLine($"readResult:{readResult}");
