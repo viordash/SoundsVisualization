@@ -1,8 +1,5 @@
-
-using Android.Bluetooth;
 using Android.Media;
 using Spectrogram;
-using static Android.Provider.MediaStore;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -12,12 +9,16 @@ namespace SoundsVisualization {
         CheckBox? cbPause;
         int bufferSize;
         SpectrogramGenerator? spectrogramGenerator;
+        ImageView? imgSpectrogram;
+        Timer? tmrRender;
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
 
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.activity_main);
+
+            imgSpectrogram = FindViewById<ImageView>(Resource.Id.imgSpectrogram);
 
             cbPause = FindViewById<CheckBox>(Resource.Id.cbPause);
             if(cbPause != null) {
@@ -60,6 +61,8 @@ namespace SoundsVisualization {
         }
 
         void Stop() {
+            tmrRender?.Dispose();
+            tmrRender = null;
             if(audioSource?.RecordingState == RecordState.Recording) {
                 audioSource?.Stop();
                 //audioSource?.Release();
@@ -73,6 +76,7 @@ namespace SoundsVisualization {
 
             System.Diagnostics.Debug.WriteLine("AudioStream.Record(): Starting background loop to read audio stream");
 
+            tmrRender = new Timer(OnRenderTimer, null, TimeSpan.FromMilliseconds(2000), TimeSpan.FromMilliseconds(500));
             while(audioSource?.RecordingState == RecordState.Recording) {
                 try {
                     // not sure if this is even a good idea, but we'll try to allow a single bad read, and past that shut it down
@@ -81,7 +85,7 @@ namespace SoundsVisualization {
                         Stop();
                         break;
                     }
-                    
+
                     readResult = audioSource.Read(audio, 0, bufferSize, 0); // this can block if there are no bytes to read
 
                     // readResult should == the # bytes read, except a few special cases
@@ -89,7 +93,7 @@ namespace SoundsVisualization {
                         readFailureCount = 0;
 
                         spectrogramGenerator!.Add(audio.Select(x => (double)x));
-                        //OnBroadcast?.Invoke(this, data);
+
 
                         System.Diagnostics.Debug.WriteLine($"readResult:{readResult}");
                     } else {
@@ -115,6 +119,15 @@ namespace SoundsVisualization {
                     //OnException?.Invoke(this, ex);
                 }
             }
+        }
+
+        public void OnRenderTimer(object? stateInfo) {
+            //lock(this) {
+            //    var bmp = spectrogramGenerator!.GetBitmap(intensity: 0.4);
+            //    System.Diagnostics.Debug.WriteLine($"OnRenderTimer: {bmp}");
+            //}
+            //imgSpectrogram!.SetImageBitmap(bmp);
+
         }
     }
 }
