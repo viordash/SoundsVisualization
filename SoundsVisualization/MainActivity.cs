@@ -1,11 +1,5 @@
-using System.Formats.Tar;
-using Android.Accounts;
-using Android.Graphics;
 using Android.Media;
-using Android.Widget;
 using Spectrogram;
-using static Android.Bluetooth.BluetoothClass;
-using static Android.Widget.GridLayout;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -49,7 +43,7 @@ namespace SoundsVisualization {
                 throw new Exception("Unable to successfully initialize AudioStream; reporting State.Uninitialized.  If using an emulator, make sure it has access to the system microphone.");
             }
 
-            spectrogramGenerator = new SpectrogramGenerator(sampleRateInHz, fftSize: fftSize, stepSize: fftSize / 20);
+            spectrogramGenerator = new SpectrogramGenerator(sampleRateInHz, fftSize: fftSize, stepSize: fftSize / 20, minFreq: 400, maxFreq: 3400);
         }
 
         void Pause_Click(object? sender, EventArgs e) {
@@ -106,7 +100,7 @@ namespace SoundsVisualization {
                         if(spectrogramGenerator!.FftsToProcess > 0) {
                             spectrogramGenerator!.Process();
                             spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
-                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 1, rotate: true);
+                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 2, rotate: true);
                             System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
                             RunOnUiThread(() => {
                                 imgSpectrogram!.SetImageBitmap(bmp);
