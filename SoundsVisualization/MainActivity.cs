@@ -10,7 +10,6 @@ namespace SoundsVisualization {
         int bufferSize;
         SpectrogramGenerator? spectrogramGenerator;
         ImageView? imgSpectrogram;
-        Timer? tmrRender;
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
@@ -58,14 +57,11 @@ namespace SoundsVisualization {
             if(audioSource?.RecordingState == RecordState.Stopped) {
                 Android.OS.Process.SetThreadPriority(Android.OS.ThreadPriority.UrgentAudio);
                 audioSource?.StartRecording();
-                //ImageView.SetImageResource(Resource.Drawable.Icon);
                 Task.Run(() => Record());
             }
         }
 
         void Stop() {
-            tmrRender?.Dispose();
-            tmrRender = null;
             if(audioSource?.RecordingState == RecordState.Recording) {
                 audioSource?.Stop();
                 //audioSource?.Release();
@@ -79,7 +75,6 @@ namespace SoundsVisualization {
 
             System.Diagnostics.Debug.WriteLine("AudioStream.Record(): Starting background loop to read audio stream");
 
-            //tmrRender = new Timer(OnRenderTimer, null, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(200));
             while(audioSource?.RecordingState == RecordState.Recording) {
                 try {
                     // not sure if this is even a good idea, but we'll try to allow a single bad read, and past that shut it down
@@ -116,7 +111,6 @@ namespace SoundsVisualization {
                                 System.Diagnostics.Debug.WriteLine("AudioStream.Record(): readResult returned error code: {0}", readResult);
                                 Stop();
                                 break;
-                            //case (int)TrackStatus.Error:
                             default:
                                 readFailureCount++;
                                 System.Diagnostics.Debug.WriteLine("AudioStream.Record(): readResult returned error code: {0}", readResult);
@@ -131,22 +125,6 @@ namespace SoundsVisualization {
                     //OnException?.Invoke(this, ex);
                 }
             }
-        }
-
-        public void OnRenderTimer(object? stateInfo) {
-            //lock(this) {
-            //    if(spectrogramGenerator!.FftsToProcess == 0) {
-            //        return;
-            //    }
-            //    spectrogramGenerator!.Process();
-            //    spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
-            //    var bmp = spectrogramGenerator!.GetBitmap(intensity: 0.4);
-            //    System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
-            //    RunOnUiThread(() => {
-            //        imgSpectrogram!.SetImageBitmap(bmp);
-            //    });
-            //}
-
         }
     }
 }

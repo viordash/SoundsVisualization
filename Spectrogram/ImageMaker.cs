@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Android.Graphics;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using Android.Hardware.Lights;
-using static Android.Icu.Text.ListFormatter;
+using Android.Graphics;
 
 namespace Spectrogram {
     /// <summary>
@@ -53,7 +48,6 @@ namespace Spectrogram {
 
         }
 
-        static int ddd = 0;
         public Bitmap GetBitmap(List<double[]> ffts) {
             if(ffts.Count == 0)
                 throw new ArgumentException("Not enough data in FFTs to generate an image yet.");
@@ -62,16 +56,7 @@ namespace Spectrogram {
             int Height = IsRotated ? ffts.Count : ffts[0].Length;
 
             var bmp = Bitmap.CreateBitmap(Width, Height, Bitmap.Config.Argb8888);
-            //Colormap.Apply(bmp);
 
-            //Rectangle lockRect = new(0, 0, Width, Height);
-            //BitmapData bitmapData = bmp.LockBits(lockRect, ImageLockMode.ReadOnly, bmp.PixelFormat);
-            //int stride = bitmapData.Stride;
-
-            //byte[] bytes = new byte[bitmapData.Stride * bmp.Height];
-            //var bytes = bmp.GetPixels(int[] ? pixels, int offset, int stride, int x, int y, int width, int height);
-
-            //System.Diagnostics.Debug.WriteLine($"---- GetBitmap 0: w:{Width}, h:{Height}");
             int stride = Width + 1;
             var pixels = new int[stride * bmp.Height];
             Parallel.For(0, Width, col => {
@@ -95,17 +80,12 @@ namespace Spectrogram {
                     int bytePosition = (Height - 1 - row) * stride + col;
                     var b = (byte)value;
                     var alfa = (byte)0xFF;
-                    //pixels[bytePosition] = (byte)bytePosition + (int)sss + (byte)(ddd / 1);
-                    pixels[bytePosition] = (alfa << 24) + /*(b << 16)*/ + (b << 8) /*+ (b << 0)*/;
+                    pixels[bytePosition] = (alfa << 24) + /*(b << 16)*/ +(b << 8) /*+ (b << 0)*/;
                 }
             });
-            ddd += 30;
 
             System.Diagnostics.Debug.WriteLine($"---- GetBitmap 1: w:{Width}, h:{Height}");
             bmp.SetPixels(pixels, 0, stride, 0, 0, Width, Height);
-
-            //Marshal.Copy(bytes, 0, bitmapData.Scan0, bytes.Length);
-            //bmp.UnlockBits(bitmapData);
 
             return bmp;
         }
