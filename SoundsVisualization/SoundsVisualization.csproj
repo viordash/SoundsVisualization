@@ -10,6 +10,6 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Spectrogram" Version="1.6.1" />
+    <ProjectReference Include="..\Spectrogram\Spectrogram.csproj" />
   </ItemGroup>
 </Project>

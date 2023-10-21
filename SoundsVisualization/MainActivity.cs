@@ -1,5 +1,11 @@
+using System.Formats.Tar;
+using Android.Accounts;
+using Android.Graphics;
 using Android.Media;
+using Android.Widget;
 using Spectrogram;
+using static Android.Bluetooth.BluetoothClass;
+using static Android.Widget.GridLayout;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -25,14 +31,16 @@ namespace SoundsVisualization {
                 cbPause.Click += Pause_Click;
             }
 
-            bufferSize = AudioRecord.GetMinBufferSize(44100, ChannelIn.Mono, Encoding.Pcm16bit);
+            const int sampleRateInHz = 8000;
+            const int fftSize = 1024;
+            bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit) / 4;
 
             if(bufferSize < 0) {
                 throw new Exception("Invalid buffer size calculated; audio settings used may not be supported on this device");
             }
             audioSource = new AudioRecord(
                 AudioSource.Mic,
-                44100,
+                sampleRateInHz,
                 ChannelIn.Mono,
                 Encoding.PcmFloat,
                 bufferSize);
@@ -41,7 +49,7 @@ namespace SoundsVisualization {
                 throw new Exception("Unable to successfully initialize AudioStream; reporting State.Uninitialized.  If using an emulator, make sure it has access to the system microphone.");
             }
 
-            spectrogramGenerator = new SpectrogramGenerator(audioSource.SampleRate, fftSize: 4096, stepSize: 500, maxFreq: 3000);
+            spectrogramGenerator = new SpectrogramGenerator(sampleRateInHz, fftSize: fftSize, stepSize: fftSize / 20);
         }
 
         void Pause_Click(object? sender, EventArgs e) {
@@ -56,6 +64,7 @@ namespace SoundsVisualization {
             if(audioSource?.RecordingState == RecordState.Stopped) {
                 Android.OS.Process.SetThreadPriority(Android.OS.ThreadPriority.UrgentAudio);
                 audioSource?.StartRecording();
+                //ImageView.SetImageResource(Resource.Drawable.Icon);
                 Task.Run(() => Record());
             }
         }
@@ -76,7 +85,7 @@ namespace SoundsVisualization {
 
             System.Diagnostics.Debug.WriteLine("AudioStream.Record(): Starting background loop to read audio stream");
 
-            tmrRender = new Timer(OnRenderTimer, null, TimeSpan.FromMilliseconds(2000), TimeSpan.FromMilliseconds(500));
+            //tmrRender = new Timer(OnRenderTimer, null, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(200));
             while(audioSource?.RecordingState == RecordState.Recording) {
                 try {
                     // not sure if this is even a good idea, but we'll try to allow a single bad read, and past that shut it down
@@ -91,11 +100,22 @@ namespace SoundsVisualization {
                     // readResult should == the # bytes read, except a few special cases
                     if(readResult > 0) {
                         readFailureCount = 0;
+                        System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
 
-                        spectrogramGenerator!.Add(audio.Select(x => (double)x));
+                        var ddd = audio.Select(x => (double)x * 1000000.0).ToList();
+                        spectrogramGenerator!.Add(ddd, false);
+
+                        if(spectrogramGenerator!.FftsToProcess > 0) {
+                            spectrogramGenerator!.Process();
+                            spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
+                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 4, rotate: true);
+                            System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
+                            RunOnUiThread(() => {
+                                imgSpectrogram!.SetImageBitmap(bmp);
+                            });
+                        }
 
 
-                        System.Diagnostics.Debug.WriteLine($"readResult:{readResult}");
                     } else {
                         switch(readResult) {
                             case (int)TrackStatus.ErrorInvalidOperation:
@@ -123,10 +143,17 @@ namespace SoundsVisualization {
 
         public void OnRenderTimer(object? stateInfo) {
             //lock(this) {
+            //    if(spectrogramGenerator!.FftsToProcess == 0) {
+            //        return;
+            //    }
+            //    spectrogramGenerator!.Process();
+            //    spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
             //    var bmp = spectrogramGenerator!.GetBitmap(intensity: 0.4);
-            //    System.Diagnostics.Debug.WriteLine($"OnRenderTimer: {bmp}");
+            //    System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
+            //    RunOnUiThread(() => {
+            //        imgSpectrogram!.SetImageBitmap(bmp);
+            //    });
             //}
-            //imgSpectrogram!.SetImageBitmap(bmp);
 
         }
     }

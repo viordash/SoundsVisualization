@@ -5,12 +5,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <TextView
+<!--    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:text="@string/app_text"
-    />
+    />-->
     <CheckBox
         android:text="Pause"
         android:layout_width="match_parent"
@@ -19,9 +19,13 @@
         android:id="@+id/cbPause"
         />
     <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="15dp"
+        android:background="#3333FFFF"
+        android:padding="5dp"
         android:id="@+id/imgSpectrogram"
-        android:contentDescription="description" 
+        android:contentDescription="description"
+        android:src="@android:drawable/sym_def_app_icon"
         />
 </RelativeLayout>
