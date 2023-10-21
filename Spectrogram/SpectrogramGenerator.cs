@@ -91,7 +91,7 @@ namespace Spectrogram
         /// Process() processes all unprocessed data.
         /// This list may not be empty after processing if there aren't enough values to fill a full FFT (FftSize).
         /// </summary>
-        private readonly List<double> UnprocessedData;
+        private readonly List<short> UnprocessedData;
 
         /// <summary>
         /// Colormap to use when generating future FFTs.
@@ -119,11 +119,11 @@ namespace Spectrogram
             double maxFreq = double.PositiveInfinity,
             int? fixedWidth = null,
             int offsetHz = 0,
-            List<double> initialAudioList = null)
+            List<short> initialAudioList = null)
         {
             Settings = new Settings(sampleRate, fftSize, stepSize, minFreq, maxFreq, offsetHz);
 
-            UnprocessedData = initialAudioList ?? new List<double>();
+            UnprocessedData = initialAudioList ?? new List<short>();
 
             if (fixedWidth.HasValue)
                 SetFixedWidth(fixedWidth.Value);
@@ -184,7 +184,7 @@ namespace Spectrogram
         /// <summary>
         /// Load new data into the spectrogram generator
         /// </summary>
-        public void Add(IEnumerable<double> audio, bool process = true)
+        public void Add(IEnumerable<short> audio, bool process = true)
         {
             UnprocessedData.AddRange(audio);
             if (process)

@@ -33,7 +33,7 @@ namespace SoundsVisualization {
 
             const int sampleRateInHz = 8000;
             const int fftSize = 1024;
-            bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit) / 4;
+            bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit);
 
             if(bufferSize < 0) {
                 throw new Exception("Invalid buffer size calculated; audio settings used may not be supported on this device");
@@ -42,7 +42,7 @@ namespace SoundsVisualization {
                 AudioSource.Mic,
                 sampleRateInHz,
                 ChannelIn.Mono,
-                Encoding.PcmFloat,
+                Encoding.Pcm16bit,
                 bufferSize);
 
             if(audioSource.State == Android.Media.State.Uninitialized) {
@@ -79,7 +79,7 @@ namespace SoundsVisualization {
         }
 
         void Record() {
-            var audio = new float[bufferSize];
+            var audio = new short[bufferSize];
             int readFailureCount = 0;
             int readResult = 0;
 
@@ -94,7 +94,6 @@ namespace SoundsVisualization {
                         Stop();
                         break;
                     }
-
                     readResult = audioSource.Read(audio, 0, bufferSize, 0); // this can block if there are no bytes to read
 
                     // readResult should == the # bytes read, except a few special cases
@@ -102,13 +101,12 @@ namespace SoundsVisualization {
                         readFailureCount = 0;
                         System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
 
-                        var ddd = audio.Select(x => (double)x * 1000000.0).ToList();
-                        spectrogramGenerator!.Add(ddd, false);
+                        spectrogramGenerator!.Add(audio, false);
 
                         if(spectrogramGenerator!.FftsToProcess > 0) {
                             spectrogramGenerator!.Process();
                             spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
-                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 4, rotate: true);
+                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 1, rotate: true);
                             System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
                             RunOnUiThread(() => {
                                 imgSpectrogram!.SetImageBitmap(bmp);
