@@ -10,6 +10,11 @@ namespace SoundsVisualization {
         int bufferSize;
         SpectrogramGenerator? spectrogramGenerator;
         ImageView? imgSpectrogram;
+        Spectrogram? spectrogram = null;
+
+
+        const int sampleRateInHz = 8000;
+        const int fftSize = 1024;
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
@@ -24,10 +29,7 @@ namespace SoundsVisualization {
                 cbPause.Click += Pause_Click;
             }
 
-            const int sampleRateInHz = 8000;
-            const int fftSize = 1024;
             bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit);
-
             if(bufferSize < 0) {
                 throw new Exception("Invalid buffer size calculated; audio settings used may not be supported on this device");
             }
@@ -56,6 +58,11 @@ namespace SoundsVisualization {
         void Start() {
             if(audioSource?.RecordingState == RecordState.Stopped) {
                 Android.OS.Process.SetThreadPriority(Android.OS.ThreadPriority.UrgentAudio);
+
+                System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
+
+                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 3400, fftSize: fftSize, stepSize: fftSize / 20,
+                        width: imgSpectrogram!.Height, intensity: 100);
                 audioSource?.StartRecording();
                 Task.Run(() => Record());
             }
@@ -69,7 +76,7 @@ namespace SoundsVisualization {
         }
 
         void Record() {
-            var audio = new short[bufferSize];
+            var pcm = new short[bufferSize];
             int readFailureCount = 0;
             int readResult = 0;
 
@@ -83,24 +90,32 @@ namespace SoundsVisualization {
                         Stop();
                         break;
                     }
-                    readResult = audioSource.Read(audio, 0, bufferSize, 0); // this can block if there are no bytes to read
+
+                    readResult = audioSource.Read(pcm, 0, pcm.Length, 0); // this can block if there are no bytes to read
 
                     // readResult should == the # bytes read, except a few special cases
                     if(readResult > 0) {
                         readFailureCount = 0;
                         System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
-
-                        spectrogramGenerator!.Add(audio, false);
-
-                        if(spectrogramGenerator!.FftsToProcess > 0) {
-                            spectrogramGenerator!.Process();
-                            spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
-                            var bmp = spectrogramGenerator!.GetBitmap(intensity: 2, rotate: true);
-                            System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
+                        spectrogram!.PcmData.AddRange(pcm);
+                        var bmp = spectrogram!.Process();
+                        if(bmp != null) {
                             RunOnUiThread(() => {
+                                System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
                                 imgSpectrogram!.SetImageBitmap(bmp);
                             });
                         }
+                        //spectrogramGenerator!.Add(audio, false);
+
+                        //if(spectrogramGenerator!.FftsToProcess > 0) {
+                        //    spectrogramGenerator!.Process();
+                        //    spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
+                        //    var bmp = spectrogramGenerator!.GetBitmap(intensity: 8, rotate: true);
+                        //    System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
+                        //    RunOnUiThread(() => {
+                        //        imgSpectrogram!.SetImageBitmap(bmp);
+                        //    });
+                        //}
 
 
                     } else {
