@@ -1,5 +1,4 @@
 using Android.Media;
-using Spectrogram;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -8,7 +7,6 @@ namespace SoundsVisualization {
         AudioRecord? audioSource;
         CheckBox? cbPause;
         int bufferSize;
-        SpectrogramGenerator? spectrogramGenerator;
         ImageView? imgSpectrogram;
         Spectrogram? spectrogram = null;
 
@@ -43,8 +41,6 @@ namespace SoundsVisualization {
             if(audioSource.State == Android.Media.State.Uninitialized) {
                 throw new Exception("Unable to successfully initialize AudioStream; reporting State.Uninitialized.  If using an emulator, make sure it has access to the system microphone.");
             }
-
-            spectrogramGenerator = new SpectrogramGenerator(sampleRateInHz, fftSize: fftSize, stepSize: fftSize / 20, minFreq: 400, maxFreq: 3400);
         }
 
         void Pause_Click(object? sender, EventArgs e) {
@@ -93,7 +89,6 @@ namespace SoundsVisualization {
 
                     readResult = audioSource.Read(pcm, 0, pcm.Length, 0); // this can block if there are no bytes to read
 
-                    // readResult should == the # bytes read, except a few special cases
                     if(readResult > 0) {
                         readFailureCount = 0;
                         System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
@@ -105,19 +100,6 @@ namespace SoundsVisualization {
                                 imgSpectrogram!.SetImageBitmap(bmp);
                             });
                         }
-                        //spectrogramGenerator!.Add(audio, false);
-
-                        //if(spectrogramGenerator!.FftsToProcess > 0) {
-                        //    spectrogramGenerator!.Process();
-                        //    spectrogramGenerator.SetFixedWidth(imgSpectrogram!.Width);
-                        //    var bmp = spectrogramGenerator!.GetBitmap(intensity: 8, rotate: true);
-                        //    System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
-                        //    RunOnUiThread(() => {
-                        //        imgSpectrogram!.SetImageBitmap(bmp);
-                        //    });
-                        //}
-
-
                     } else {
                         switch(readResult) {
                             case (int)TrackStatus.ErrorInvalidOperation:

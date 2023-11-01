@@ -12,7 +12,4 @@
   <ItemGroup>
     <PackageReference Include="FftSharp" Version="2.1.0" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Spectrogram\Spectrogram.csproj" />
-  </ItemGroup>
 </Project>
