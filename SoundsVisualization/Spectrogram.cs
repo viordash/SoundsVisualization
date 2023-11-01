@@ -111,12 +111,12 @@ namespace SoundsVisualization {
                     var bytePosition = (h - 1 - row) * stride + col;
                     var b = (byte)value;
                     var alfa = (byte)0xFF;
-                    pixels[bytePosition] = (alfa << 24) + /*(b << 16)*/ +(b << 8) /*+ (b << 0)*/;
+                    pixels[bytePosition] = (alfa << 24) + (b << 8);
                 }
             });
 
             System.Diagnostics.Debug.WriteLine($"---- GetBitmap 1: w:{w}, h:{h}");
-            bmp.SetPixels(pixels, 0, stride, 0, 0, w, 1);
+            bmp.SetPixels(pixels, 0, stride, 0, 0, w, h);
 
             return bmp;
         }
