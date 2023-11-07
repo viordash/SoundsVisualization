@@ -57,6 +57,7 @@ namespace SoundsVisualization {
 
                 System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
 
+                imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
                 spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 3400, fftSize: fftSize, stepSize: fftSize / 10,
                         width: imgSpectrogram!.Height, intensity: 1);
                 audioSource?.StartRecording();
