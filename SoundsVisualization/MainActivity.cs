@@ -1,3 +1,4 @@
+using System.Numerics;
 using Android.Media;
 
 namespace SoundsVisualization {
@@ -12,7 +13,7 @@ namespace SoundsVisualization {
 
 
         const int sampleRateInHz = 8000;
-        const int fftSize = 1024;
+
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
@@ -58,8 +59,11 @@ namespace SoundsVisualization {
                 System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
 
                 imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
-                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 3400, fftSize: fftSize, stepSize: fftSize / 10,
-                        width: imgSpectrogram!.Height, intensity: 1);
+                int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
+
+                int stepSize = (fftSize - bufferSize) / 16;
+                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 900, maxFreq: 1100, fftSize: fftSize, stepSize: stepSize,
+                        width: imgSpectrogram!.Height, intensity: 0.2);
                 audioSource?.StartRecording();
                 Task.Run(() => Record());
             }
@@ -94,13 +98,12 @@ namespace SoundsVisualization {
                         readFailureCount = 0;
                         System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
                         spectrogram!.PcmData.AddRange(pcm);
-                        var bmp = spectrogram!.Process();
-                        if(bmp != null) {
+                        spectrogram!.Process(bmp => {
                             RunOnUiThread(() => {
                                 System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
                                 imgSpectrogram!.SetImageBitmap(bmp);
                             });
-                        }
+                        });
                     } else {
                         switch(readResult) {
                             case (int)TrackStatus.ErrorInvalidOperation:

@@ -1,9 +1,4 @@
-﻿using System.Buffers;
-using Android.Drm;
-using Android.Graphics;
-using Android.Hardware.Lights;
-using FftSharp;
-using static Android.Icu.Text.ListFormatter;
+﻿using Android.Graphics;
 using static Android.InputMethodServices.Keyboard;
 
 namespace SoundsVisualization {
@@ -20,6 +15,8 @@ namespace SoundsVisualization {
         readonly int fftSize;
         readonly int stepSize;
         readonly double horzScale;
+        readonly List<int[]> pixels;
+
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int width, double intensity) {
             this.fftSize = fftSize;
@@ -38,22 +35,29 @@ namespace SoundsVisualization {
             height = fftIndexMaxFreq - fftIndexMinFreq;
 
             FFTs = new List<double[]>();
+            pixels = new List<int[]>(width);
+            while(pixels.Count < width) {
+                pixels.Insert(0, new int[height]);
+            }
         }
 
 
-        public Bitmap? Process() {
+        public void Process(Action<Bitmap> render) {
             var fftsToProcess = (PcmData.Count - fftSize) / stepSize;
 
             if(fftsToProcess < 1) {
-                return null;
+                return;
             }
 
-            var newFfts = new double[fftsToProcess][];
+            System.Diagnostics.Debug.WriteLine($"---- Proces:{fftsToProcess}, step:{stepSize}");
+            //var newFfts = new double[fftsToProcess][];
 
-            Parallel.For(0, fftsToProcess, newFftIndex => {
+            var cols = new int[fftsToProcess][];
+
+            Parallel.For(0, fftsToProcess, col => {
                 var samples = new System.Numerics.Complex[fftSize];
 
-                int sourceIndex = newFftIndex * stepSize;
+                int sourceIndex = col * stepSize;
                 for(int i = 0; i < fftSize; i++) {
                     samples[i] = PcmData[sourceIndex + i] * hanningWindow[i];
                 }
@@ -61,20 +65,42 @@ namespace SoundsVisualization {
                 FftSharp.FFT.Forward(samples);
 
                 var samplesWindow = samples.AsSpan(fftIndexMinFreq);
-                newFfts[newFftIndex] = new double[height];
+                //newFfts[col] = new double[height];
+                cols[col] = new int[height];
                 for(int i = 0; i < height; i++) {
-                    newFfts[newFftIndex][i] = samplesWindow[i].Magnitude / fftSize;
+                    var fftVal = samplesWindow[i].Magnitude / fftSize;
+                    //newFfts[col][i] = fftVal;
+
+                    fftVal *= intensity;
+                    fftVal = Math.Min(fftVal, 255);
+                    var b = (byte)fftVal;
+                    var alfa = (byte)0xFF;
+                    cols[col][i] = (alfa << 24) + (b << 8);
                 }
             });
-
-            foreach(var newFft in newFfts) {
-                FFTs.Add(newFft);
-            }
-
             PcmData.RemoveRange(0, fftsToProcess * stepSize);
 
-            PadOrTrimForFixedWidth();
-            return GetBitmap();
+            //foreach(var newFft in newFfts) {
+            //    FFTs.Add(newFft);
+            //}
+
+
+            pixels.RemoveRange(0, cols.Length);
+            foreach(var col in cols) {
+                pixels.Add(col);
+            }
+
+            var bmp = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
+            if(bmp == null) {
+                throw new ArgumentNullException(nameof(bmp));
+            }
+
+            var arr = pixels.SelectMany(x => x).ToArray();
+            bmp.SetPixels(arr, 0, width, 0, 0, width, height);
+            render(bmp);
+
+            //PadOrTrimForFixedWidth();
+            //render(GetBitmap());
         }
 
         void PadOrTrimForFixedWidth() {
