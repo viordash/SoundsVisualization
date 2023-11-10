@@ -13,6 +13,7 @@ namespace SoundsVisualization {
         readonly int fftSize;
         readonly int stepSize;
         readonly List<int[]> pixels;
+        readonly Bitmap? bitmap;
 
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int width, double intensity) {
@@ -34,6 +35,11 @@ namespace SoundsVisualization {
             pixels = new List<int[]>(width);
             while(pixels.Count < width) {
                 pixels.Insert(0, new int[height]);
+            }
+
+            bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
+            if(bitmap == null) {
+                throw new ArgumentNullException(nameof(bitmap));
             }
         }
 
@@ -79,14 +85,10 @@ namespace SoundsVisualization {
                 pixels.Add(col);
             }
 
-            var bmp = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
-            if(bmp == null) {
-                throw new ArgumentNullException(nameof(bmp));
-            }
 
             var arr = pixels.SelectMany(x => x).ToArray();
-            bmp.SetPixels(arr, 0, width, 0, 0, width, height);
-            render(bmp);
+            bitmap!.SetPixels(arr, 0, width, 0, 0, width, height);
+            render(bitmap);
         }
     }
 }
