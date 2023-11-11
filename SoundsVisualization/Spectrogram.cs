@@ -43,7 +43,6 @@ namespace SoundsVisualization {
             }
         }
 
-
         public void Process(Action<Bitmap> render) {
             var fftsToProcess = (PcmData.Count - fftSize) / stepSize;
 
@@ -85,9 +84,15 @@ namespace SoundsVisualization {
                 pixels.Add(col);
             }
 
+            var rotatedArr = new int[width * height];
+            int i = 0;
+            for(int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    rotatedArr[i++] = pixels[x][y];
+                }
+            }
 
-            var arr = pixels.SelectMany(x => x).ToArray();
-            bitmap!.SetPixels(arr, 0, width, 0, 0, width, height);
+            bitmap!.SetPixels(rotatedArr, 0, width, 0, 0, width, height);
             render(bitmap);
         }
     }
