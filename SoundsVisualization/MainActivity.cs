@@ -58,7 +58,7 @@ namespace SoundsVisualization {
 
                 System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
 
-                ////imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
+                imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
 
                 int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
 

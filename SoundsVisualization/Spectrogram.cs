@@ -69,14 +69,14 @@ namespace SoundsVisualization {
                     fftVal = Math.Min(fftVal, 255);
                     var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
-                    pixels[yPos + x * height] = (alfa << 24) + (b << 8);
+                    pixels[x + yPos * width] = (alfa << 24) + (b << 8);
                 }
                 yPos++;
                 if(yPos >= height) {
                     yPos = 0;
                 }
                 for(int x = 0; x < width; x++) {
-                    pixels[yPos + x * height] = 0;
+                    pixels[x + yPos * width] = 0;
                 }
             }
             PcmData.RemoveRange(0, fftsToProcess * stepSize);
