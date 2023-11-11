@@ -1,4 +1,5 @@
 ﻿using Android.Graphics;
+using Java.Security.Cert;
 
 namespace SoundsVisualization {
     internal class Spectrogram {
@@ -12,8 +13,9 @@ namespace SoundsVisualization {
         readonly int width;
         readonly int fftSize;
         readonly int stepSize;
-        readonly List<int[]> pixels;
+        readonly int[] pixels;
         readonly Bitmap? bitmap;
+        int xPos;
 
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int width, double intensity) {
@@ -32,15 +34,13 @@ namespace SoundsVisualization {
             fftIndexMaxFreq = (maxFreq >= freqNyquist) ? fftSize / 2 : (int)(maxFreq / hzPerPixel);
             height = fftIndexMaxFreq - fftIndexMinFreq;
 
-            pixels = new List<int[]>(width);
-            while(pixels.Count < width) {
-                pixels.Insert(0, new int[height]);
-            }
+            pixels = new int[width * height];
 
             bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
             if(bitmap == null) {
                 throw new ArgumentNullException(nameof(bitmap));
             }
+            xPos = 0;
         }
 
         public void Process(Action<Bitmap> render) {
@@ -54,46 +54,39 @@ namespace SoundsVisualization {
 
             var cols = new int[fftsToProcess][];
 
-            Parallel.For(0, fftsToProcess, col => {
+            for(int x = 0; x < fftsToProcess; x++) {
                 var samples = new System.Numerics.Complex[fftSize];
 
-                int sourceIndex = col * stepSize;
-                for(int i = 0; i < fftSize; i++) {
-                    samples[i] = PcmData[sourceIndex + i] * hanningWindow[i];
+                int sourceIndex = x * stepSize;
+                for(int y = 0; y < fftSize; y++) {
+                    samples[y] = PcmData[sourceIndex + y] * hanningWindow[y];
                 }
 
                 FftSharp.FFT.Forward(samples);
 
                 var samplesWindow = samples.AsSpan(fftIndexMinFreq);
-                cols[col] = new int[height];
-                for(int i = 0; i < height; i++) {
-                    var fftVal = samplesWindow[i].Magnitude / fftSize;
+
+                for(int y = 0; y < height; y++) {
+                    var fftVal = samplesWindow[y].Magnitude / fftSize;
 
                     fftVal *= intensity;
                     fftVal = Math.Min(fftVal, 255);
                     var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
-                    cols[col][i] = (alfa << 24) + (b << 8);
+                    pixels[xPos + y * width] = (alfa << 24) + (b << 8);
                 }
-            });
+                xPos++;
+                if(xPos >= width) {
+                    xPos = 0;
+                }
+                for(int y = 0; y < height; y++) {
+                    pixels[xPos + y * width] = 0;
+                }
+                bitmap!.SetPixels(pixels, 0, width, 0, 0, width, height);
+                render(bitmap);
+            }
+
             PcmData.RemoveRange(0, fftsToProcess * stepSize);
-
-
-            pixels.RemoveRange(0, cols.Length);
-            foreach(var col in cols) {
-                pixels.Add(col);
-            }
-
-            var rotatedArr = new int[width * height];
-            int i = 0;
-            for(int y = 0; y < height; y++) {
-                for(int x = 0; x < width; x++) {
-                    rotatedArr[i++] = pixels[x][y];
-                }
-            }
-
-            bitmap!.SetPixels(rotatedArr, 0, width, 0, 0, width, height);
-            render(bitmap);
         }
     }
 }
