@@ -62,7 +62,7 @@ namespace SoundsVisualization {
 
                 int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
 
-                int stepSize = (fftSize - bufferSize) / 16;
+                int stepSize = (fftSize - bufferSize) / 4;
                 spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 300, maxFreq: 3400, fftSize: fftSize, stepSize: stepSize,
                         height: imgSpectrogram!.Height, intensity: 4);
                 audioSource?.StartRecording();

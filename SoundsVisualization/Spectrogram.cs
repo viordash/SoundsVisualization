@@ -1,4 +1,5 @@
-﻿using Android.Graphics;
+﻿using System.Buffers;
+using Android.Graphics;
 using Java.Security.Cert;
 
 namespace SoundsVisualization {
@@ -51,8 +52,9 @@ namespace SoundsVisualization {
 
             System.Diagnostics.Debug.WriteLine($"---- Proces:{fftsToProcess}, step:{stepSize}");
 
-            for(int y = 0; y < fftsToProcess; y++) {
-                var samples = new System.Numerics.Complex[fftSize];
+            Parallel.For(0, fftsToProcess, y => {
+                var poolComplex = ArrayPool<System.Numerics.Complex>.Create();
+                var samples = poolComplex.Rent(fftSize);
 
                 int sourceIndex = y * stepSize;
                 for(int x = 0; x < fftSize; x++) {
@@ -61,24 +63,26 @@ namespace SoundsVisualization {
 
                 FftSharp.FFT.Forward(samples);
 
-                var samplesWindow = samples.AsSpan(fftIndexMinFreq);
-
+                var _yPos = yPos + y;
+                if(_yPos >= height) {
+                    _yPos = _yPos - height;
+                }
                 for(int x = 0; x < width; x++) {
-                    var fftVal = samplesWindow[x].Magnitude / fftSize;
+                    var fftVal = samples[fftIndexMinFreq + x].Magnitude / fftSize;
                     fftVal *= intensity;
                     fftVal = Math.Min(fftVal, 255);
                     var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
-                    pixels[x + yPos * width] = (alfa << 24) + (b << 8);
+                    pixels[x + _yPos * width] = (alfa << 24) + (b << 8);
                 }
-                yPos++;
-                if(yPos >= height) {
-                    yPos = 0;
-                }
-                for(int x = 0; x < width; x++) {
-                    pixels[x + yPos * width] = 0;
-                }
+                poolComplex.Return(samples);
+            });
+
+            yPos += fftsToProcess;
+            if(yPos >= height) {
+                yPos = yPos - height;
             }
+
             PcmData.RemoveRange(0, fftsToProcess * stepSize);
 
             bitmap!.SetPixels(pixels, 0, width, 0, 0, width, height);
