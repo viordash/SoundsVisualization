@@ -15,13 +15,12 @@ namespace SoundsVisualization {
         readonly int stepSize;
         readonly int[] pixels;
         readonly Bitmap? bitmap;
-        int xPos;
+        int yPos;
 
-
-        public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int width, double intensity) {
+        public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int height, double intensity) {
             this.fftSize = fftSize;
             this.stepSize = stepSize;
-            this.width = width;
+            this.height = height;
             this.intensity = intensity;
 
             var window = new FftSharp.Windows.Hanning();
@@ -32,7 +31,7 @@ namespace SoundsVisualization {
             var hzPerPixel = (double)sampleRate / fftSize;
             fftIndexMinFreq = (minFreq == 0) ? 0 : (int)(minFreq / hzPerPixel);
             fftIndexMaxFreq = (maxFreq >= freqNyquist) ? fftSize / 2 : (int)(maxFreq / hzPerPixel);
-            height = fftIndexMaxFreq - fftIndexMinFreq;
+            width = fftIndexMaxFreq - fftIndexMinFreq;
 
             pixels = new int[width * height];
 
@@ -40,7 +39,7 @@ namespace SoundsVisualization {
             if(bitmap == null) {
                 throw new ArgumentNullException(nameof(bitmap));
             }
-            xPos = 0;
+            yPos = 0;
         }
 
         public void Process(Action<Bitmap> render) {
@@ -52,41 +51,38 @@ namespace SoundsVisualization {
 
             System.Diagnostics.Debug.WriteLine($"---- Proces:{fftsToProcess}, step:{stepSize}");
 
-            var cols = new int[fftsToProcess][];
-
-            for(int x = 0; x < fftsToProcess; x++) {
+            for(int y = 0; y < fftsToProcess; y++) {
                 var samples = new System.Numerics.Complex[fftSize];
 
-                int sourceIndex = x * stepSize;
-                for(int y = 0; y < fftSize; y++) {
-                    samples[y] = PcmData[sourceIndex + y] * hanningWindow[y];
+                int sourceIndex = y * stepSize;
+                for(int x = 0; x < fftSize; x++) {
+                    samples[x] = PcmData[sourceIndex + x] * hanningWindow[x];
                 }
 
                 FftSharp.FFT.Forward(samples);
 
                 var samplesWindow = samples.AsSpan(fftIndexMinFreq);
 
-                for(int y = 0; y < height; y++) {
-                    var fftVal = samplesWindow[y].Magnitude / fftSize;
-
+                for(int x = 0; x < width; x++) {
+                    var fftVal = samplesWindow[x].Magnitude / fftSize;
                     fftVal *= intensity;
                     fftVal = Math.Min(fftVal, 255);
                     var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
-                    pixels[xPos + y * width] = (alfa << 24) + (b << 8);
+                    pixels[yPos + x * height] = (alfa << 24) + (b << 8);
                 }
-                xPos++;
-                if(xPos >= width) {
-                    xPos = 0;
+                yPos++;
+                if(yPos >= height) {
+                    yPos = 0;
                 }
-                for(int y = 0; y < height; y++) {
-                    pixels[xPos + y * width] = 0;
+                for(int x = 0; x < width; x++) {
+                    pixels[yPos + x * height] = 0;
                 }
-                bitmap!.SetPixels(pixels, 0, width, 0, 0, width, height);
-                render(bitmap);
             }
-
             PcmData.RemoveRange(0, fftsToProcess * stepSize);
+
+            bitmap!.SetPixels(pixels, 0, width, 0, 0, width, height);
+            render(bitmap);
         }
     }
 }

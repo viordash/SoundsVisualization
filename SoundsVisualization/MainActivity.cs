@@ -58,12 +58,13 @@ namespace SoundsVisualization {
 
                 System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
 
-                imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
+                ////imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
+
                 int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
 
                 int stepSize = (fftSize - bufferSize) / 16;
-                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 900, maxFreq: 1100, fftSize: fftSize, stepSize: stepSize,
-                        width: imgSpectrogram!.Height, intensity: 0.2);
+                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 300, maxFreq: 3400, fftSize: fftSize, stepSize: stepSize,
+                        height: imgSpectrogram!.Height, intensity: 4);
                 audioSource?.StartRecording();
                 Task.Run(() => Record());
             }
@@ -100,7 +101,7 @@ namespace SoundsVisualization {
                         spectrogram!.PcmData.AddRange(pcm);
                         spectrogram!.Process(bmp => {
                             RunOnUiThread(() => {
-                                System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
+                                //System.Diagnostics.Debug.WriteLine($"---- OnRenderTimer: {bmp}");
                                 imgSpectrogram!.SetImageBitmap(bmp);
                             });
                         });
