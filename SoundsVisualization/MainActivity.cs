@@ -62,8 +62,8 @@ namespace SoundsVisualization {
 
                 int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
 
-                int stepSize = (fftSize - bufferSize) / 4;
-                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 300, maxFreq: 3400, fftSize: fftSize, stepSize: stepSize,
+                int stepSize = fftSize / 20;
+                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 4000, fftSize: fftSize, stepSize: stepSize,
                         height: imgSpectrogram!.Height, intensity: 4);
                 audioSource?.StartRecording();
                 Task.Run(() => Record());
@@ -97,7 +97,7 @@ namespace SoundsVisualization {
 
                     if(readResult > 0) {
                         readFailureCount = 0;
-                        System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
+                        //System.Diagnostics.Debug.WriteLine($"---- readResult:{readResult}");
                         spectrogram!.PcmData.AddRange(pcm);
                         spectrogram!.Process(bmp => {
                             RunOnUiThread(() => {
