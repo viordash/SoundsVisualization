@@ -17,6 +17,7 @@ namespace SoundsVisualization {
         readonly int[] pixels;
         readonly Bitmap? bitmap;
         int yPos;
+        readonly ArrayPool<System.Numerics.Complex> arrPoolComplex;
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int height, double intensity) {
             this.fftSize = fftSize;
@@ -41,6 +42,8 @@ namespace SoundsVisualization {
                 throw new ArgumentNullException(nameof(bitmap));
             }
             yPos = 0;
+
+            arrPoolComplex = ArrayPool<System.Numerics.Complex>.Create();
         }
 
         public void Process(Action<Bitmap> render) {
@@ -53,8 +56,7 @@ namespace SoundsVisualization {
             System.Diagnostics.Debug.WriteLine($"---- Proces:{fftsToProcess}, step:{stepSize}");
 
             Parallel.For(0, fftsToProcess, y => {
-                var poolComplex = ArrayPool<System.Numerics.Complex>.Create();
-                var samples = poolComplex.Rent(fftSize);
+                var samples = arrPoolComplex.Rent(fftSize);
 
                 int sourceIndex = y * stepSize;
                 for(int x = 0; x < fftSize; x++) {
@@ -75,7 +77,7 @@ namespace SoundsVisualization {
                     var alfa = (byte)0xFF;
                     pixels[x + _yPos * width] = (alfa << 24) + (b << 8);
                 }
-                poolComplex.Return(samples);
+                arrPoolComplex.Return(samples);
             });
 
             yPos += fftsToProcess;
