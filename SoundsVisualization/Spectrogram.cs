@@ -1,7 +1,5 @@
 ﻿using System.Buffers;
-using System.Text;
 using Android.Graphics;
-using Java.Security.Cert;
 
 namespace SoundsVisualization {
     internal class Spectrogram {
@@ -19,7 +17,8 @@ namespace SoundsVisualization {
         readonly Bitmap? bitmap;
         int yPos;
         readonly ArrayPool<System.Numerics.Complex> arrPoolComplex;
-        readonly double[,] cutoffArr;
+        readonly double[] cutoffArr;
+        readonly int cutoffBand;
         int cutoffY;
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int height, double intensity) {
@@ -39,7 +38,8 @@ namespace SoundsVisualization {
             width = fftIndexMaxFreq - fftIndexMinFreq;
 
             pixels = new int[width * height];
-            cutoffArr = new double[width, height / 16];
+            cutoffBand = height / 8;
+            cutoffArr = new double[width * cutoffBand];
             cutoffY = 0;
 
             bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
@@ -52,16 +52,14 @@ namespace SoundsVisualization {
         }
 
         double GetAvgLineValue(int xLine) {
-            int lowerBound = Math.Max(xLine - 2, 0);
-            int upperBound = Math.Min(xLine + 2, width);
-
-            double value = 0;
-            for(int y = 0; y < cutoffArr.GetLength(1); y++) {
-                for(int x = lowerBound; x < upperBound; x++) {
-                    value += cutoffArr[x, y];
-                }
+            double avgValue = 0;
+            var start = Math.Max(xLine - 2, 0) * cutoffBand;
+            var len = Math.Min(5 * cutoffBand, cutoffArr.Length - start);
+            var values = cutoffArr.AsSpan(start, len);
+            foreach(var val in values) {
+                avgValue += val;
             }
-            return value / (cutoffArr.GetLength(1) * (upperBound - lowerBound));
+            return avgValue / values.Length;
         }
 
         public void Process(Action<Bitmap> render) {
@@ -90,7 +88,7 @@ namespace SoundsVisualization {
                     var fftVal = samples[fftIndexMinFreq + x].Magnitude / fftSize;
                     fftVal *= intensity;
 
-                    cutoffArr[x, cutoffY] = fftVal;
+                    cutoffArr[x * cutoffBand + cutoffY] = fftVal;
 
                     if(fftVal > GetAvgLineValue(x)) {
                         fftVal = Math.Min(fftVal, 255);
@@ -104,7 +102,7 @@ namespace SoundsVisualization {
                 }
 
                 cutoffY++;
-                if(cutoffY >= cutoffArr.GetLength(1)) {
+                if(cutoffY >= cutoffBand) {
                     cutoffY = 0;
                 }
 
