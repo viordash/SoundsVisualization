@@ -69,8 +69,7 @@ namespace SoundsVisualization {
                 return;
             }
 
-            Parallel.For(0, fftsToProcess, y => {
-                //for(int y = 0; y < fftsToProcess; y++) {
+            for(int y = 0; y < fftsToProcess; y++) {
                 var samples = arrPoolComplex.Rent(fftSize);
                 int sourceIndex = y * stepSize;
                 for(int x = 0; x < fftSize; x++) {
@@ -84,19 +83,34 @@ namespace SoundsVisualization {
                     _yPos = _yPos - height;
                 }
 
+                var valuableCount = 0;
+                var show = false;
                 for(int x = 0; x < width; x++) {
                     var fftVal = samples[fftIndexMinFreq + x].Magnitude / fftSize;
                     fftVal *= intensity;
 
                     cutoffArr[x * cutoffBand + cutoffY] = fftVal;
 
-                    if(fftVal > GetAvgLineValue(x)) {
+                    if(!show) {
+                        var avg = GetAvgLineValue(x);
+                        if(avg > 1.0 && fftVal > avg * 2.0) {
+                            valuableCount++;
+                            show = valuableCount > width / 5;
+                        }
+                    }
+                }
+
+                for(int x = 0; x < width; x++) {
+                    byte b;
+
+                    if(show) {
+                        var fftVal = cutoffArr[x * cutoffBand + cutoffY];
                         fftVal = Math.Min(fftVal, 255);
+                        b = (byte)fftVal;
                     } else {
-                        fftVal = 0;
+                        b = 0;
                     }
 
-                    var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
                     pixels[x + _yPos * width] = (alfa << 24) + (b << 8);
                 }
@@ -107,8 +121,7 @@ namespace SoundsVisualization {
                 }
 
                 arrPoolComplex.Return(samples);
-                //}
-            });
+            }
 
             yPos += fftsToProcess;
             if(yPos >= height) {
