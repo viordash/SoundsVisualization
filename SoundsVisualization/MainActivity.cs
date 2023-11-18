@@ -6,7 +6,6 @@ namespace SoundsVisualization {
     public class MainActivity : Activity {
 
         AudioRecord? audioSource;
-        CheckBox? cbPause;
         int bufferSize;
         ImageView? imgSpectrogram;
         Spectrogram? spectrogram = null;
@@ -22,11 +21,7 @@ namespace SoundsVisualization {
             SetContentView(Resource.Layout.activity_main);
 
             imgSpectrogram = FindViewById<ImageView>(Resource.Id.imgSpectrogram);
-
-            cbPause = FindViewById<CheckBox>(Resource.Id.cbPause);
-            if(cbPause != null) {
-                cbPause.Click += Pause_Click;
-            }
+            imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
 
             bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit);
             if(bufferSize < 0) {
@@ -44,36 +39,31 @@ namespace SoundsVisualization {
             }
         }
 
-        void Pause_Click(object? sender, EventArgs e) {
-            if(cbPause!.Checked == false) {
-                Start();
-            } else {
-                Stop();
-            }
-        }
 
-        void Start() {
+        protected override void OnStart() {
+            base.OnStart();
             if(audioSource?.RecordingState == RecordState.Stopped) {
-                Android.OS.Process.SetThreadPriority(Android.OS.ThreadPriority.UrgentAudio);
+                Task.Run(async () => {
+                    Android.OS.Process.SetThreadPriority(Android.OS.ThreadPriority.UrgentAudio);
 
-                System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
+                    await Task.Delay(500);
+                    System.Diagnostics.Debug.WriteLine($"imgSpectrogram: w:{imgSpectrogram!.Width}, h:{imgSpectrogram!.Height}");
 
-                imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
-
-                int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
-
-                int stepSize = fftSize / 20;
-                spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 4000, fftSize: fftSize, stepSize: stepSize,
-                        height: imgSpectrogram!.Height, intensity: 4);
-                audioSource?.StartRecording();
-                Task.Run(() => Record());
+                    int fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)bufferSize * 2);
+                    int stepSize = fftSize / 20;
+                    spectrogram = spectrogram ?? new Spectrogram(sampleRateInHz, minFreq: 400, maxFreq: 4000, fftSize: fftSize, stepSize: stepSize,
+                            height: imgSpectrogram!.Height, intensity: 4);
+                    audioSource?.StartRecording();
+                    Record();
+                    System.Diagnostics.Debug.WriteLine("stop record");
+                });
             }
         }
 
-        void Stop() {
+        protected override void OnStop() {
+            base.OnStop();
             if(audioSource?.RecordingState == RecordState.Recording) {
                 audioSource?.Stop();
-                //audioSource?.Release();
             }
         }
 
@@ -89,7 +79,6 @@ namespace SoundsVisualization {
                     // not sure if this is even a good idea, but we'll try to allow a single bad read, and past that shut it down
                     if(readFailureCount > 1) {
                         System.Diagnostics.Debug.WriteLine("AudioStream.Record(): Multiple read failures detected, stopping stream");
-                        Stop();
                         break;
                     }
 
@@ -111,7 +100,6 @@ namespace SoundsVisualization {
                             case (int)TrackStatus.ErrorBadValue:
                             case (int)TrackStatus.ErrorDeadObject:
                                 System.Diagnostics.Debug.WriteLine("AudioStream.Record(): readResult returned error code: {0}", readResult);
-                                Stop();
                                 break;
                             default:
                                 readFailureCount++;

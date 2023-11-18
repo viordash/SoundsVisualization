@@ -11,13 +11,6 @@
         android:layout_centerInParent="true"
         android:text="@string/app_text"
     />-->
-    <CheckBox
-        android:text="Pause"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:checked="true"
-        android:id="@+id/cbPause"
-        />
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
