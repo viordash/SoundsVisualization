@@ -17,9 +17,9 @@ namespace SoundsVisualization {
         readonly Bitmap? bitmap;
         int yPos;
         readonly ArrayPool<System.Numerics.Complex> arrPoolComplex;
-        readonly double[] cutoffArr;
-        readonly int cutoffBand;
-        int cutoffY;
+        readonly double[] bandValues;
+        readonly int bandValuesHeight;
+        int bandValuesY;
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int height, double intensity) {
             this.fftSize = fftSize;
@@ -38,9 +38,9 @@ namespace SoundsVisualization {
             width = fftIndexMaxFreq - fftIndexMinFreq;
 
             pixels = new int[width * height];
-            cutoffBand = height / 8;
-            cutoffArr = new double[width * cutoffBand];
-            cutoffY = 0;
+            bandValuesHeight = height / 8;
+            bandValues = new double[width * bandValuesHeight];
+            bandValuesY = 0;
 
             bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
             if(bitmap == null) {
@@ -53,9 +53,9 @@ namespace SoundsVisualization {
 
         double GetAvgLineValue(int xLine) {
             double avgValue = 0;
-            var start = Math.Max(xLine - 2, 0) * cutoffBand;
-            var len = Math.Min(5 * cutoffBand, cutoffArr.Length - start);
-            var values = cutoffArr.AsSpan(start, len);
+            var start = Math.Max(xLine - 2, 0) * bandValuesHeight;
+            var len = Math.Min(5 * bandValuesHeight, bandValues.Length - start);
+            var values = bandValues.AsSpan(start, len);
             foreach(var val in values) {
                 avgValue += val;
             }
@@ -89,7 +89,7 @@ namespace SoundsVisualization {
                     var fftVal = samples[fftIndexMinFreq + x].Magnitude / fftSize;
                     fftVal *= intensity;
 
-                    cutoffArr[x * cutoffBand + cutoffY] = fftVal;
+                    bandValues[x * bandValuesHeight + bandValuesY] = fftVal;
 
                     if(!show) {
                         var avg = GetAvgLineValue(x);
@@ -104,7 +104,7 @@ namespace SoundsVisualization {
                     byte b;
 
                     if(show) {
-                        var fftVal = cutoffArr[x * cutoffBand + cutoffY];
+                        var fftVal = bandValues[x * bandValuesHeight + bandValuesY];
                         fftVal = Math.Min(fftVal, 255);
                         b = (byte)fftVal;
                     } else {
@@ -115,9 +115,9 @@ namespace SoundsVisualization {
                     pixels[x + _yPos * width] = (alfa << 24) + (b << 8);
                 }
 
-                cutoffY++;
-                if(cutoffY >= cutoffBand) {
-                    cutoffY = 0;
+                bandValuesY++;
+                if(bandValuesY >= bandValuesHeight) {
+                    bandValuesY = 0;
                 }
 
                 arrPoolComplex.Return(samples);
