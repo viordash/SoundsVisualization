@@ -1,5 +1,6 @@
 using System.Numerics;
 using Android.Media;
+using Android.Views;
 
 namespace SoundsVisualization {
     [Activity(Label = "@string/app_name", MainLauncher = true)]
@@ -16,6 +17,10 @@ namespace SoundsVisualization {
 
         protected override void OnCreate(Bundle? savedInstanceState) {
             base.OnCreate(savedInstanceState);
+
+            RequestWindowFeature(WindowFeatures.NoTitle);
+            Window!.AddFlags(WindowManagerFlags.Fullscreen | WindowManagerFlags.TurnScreenOn);
+
 
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.activity_main);
