@@ -15,11 +15,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="15dp"
-        android:background="#3333FFFF"
+        android:background="#ff110033"
         android:padding="5dp"
         android:rotation="180"
         android:id="@+id/imgSpectrogram"
-        android:contentDescription="description"
-        android:src="@android:drawable/sym_def_app_icon"
         />
 </RelativeLayout>
