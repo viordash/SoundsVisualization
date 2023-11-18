@@ -112,7 +112,7 @@ namespace SoundsVisualization {
                     }
 
                     var alfa = (byte)0xFF;
-                    pixels[x + _yPos * width] = (alfa << 24) + (0x11 << 16) + (b << 8) + (0x33 << 0);
+                    pixels[x + _yPos * width] = (alfa << 24) + (0x07 << 16) + (b << 8) + (0x17 << 0);
                 }
 
                 bandValuesY++;

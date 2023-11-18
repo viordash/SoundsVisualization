@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Timers;
 using Android.Media;
 using Android.Views;
 
@@ -8,9 +9,10 @@ namespace SoundsVisualization {
 
         AudioRecord? audioSource;
         int bufferSize;
+        TextView? txtHours;
         ImageView? imgSpectrogram;
         Spectrogram? spectrogram = null;
-
+        System.Timers.Timer timer;
 
         const int sampleRateInHz = 8000;
 
@@ -28,6 +30,9 @@ namespace SoundsVisualization {
             imgSpectrogram = FindViewById<ImageView>(Resource.Id.imgSpectrogram);
             imgSpectrogram!.SetScaleType(ImageView.ScaleType.FitXy);
 
+            txtHours = FindViewById<TextView>(Resource.Id.txtHours);
+            txtHours!.Text = ":";
+
             bufferSize = AudioRecord.GetMinBufferSize(sampleRateInHz, ChannelIn.Mono, Encoding.Pcm16bit);
             if(bufferSize < 0) {
                 throw new Exception("Invalid buffer size calculated; audio settings used may not be supported on this device");
@@ -42,8 +47,8 @@ namespace SoundsVisualization {
             if(audioSource.State == Android.Media.State.Uninitialized) {
                 throw new Exception("Unable to successfully initialize AudioStream; reporting State.Uninitialized.  If using an emulator, make sure it has access to the system microphone.");
             }
+            timer = new(TimeSpan.FromSeconds(1));
         }
-
 
         protected override void OnStart() {
             base.OnStart();
@@ -63,6 +68,10 @@ namespace SoundsVisualization {
                     System.Diagnostics.Debug.WriteLine("stop record");
                 });
             }
+
+            timer.Enabled = true;
+            timer.AutoReset = true;
+            timer.Elapsed += OnTimedEvent;
         }
 
         protected override void OnStop() {
@@ -70,6 +79,7 @@ namespace SoundsVisualization {
             if(audioSource?.RecordingState == RecordState.Recording) {
                 audioSource?.Stop();
             }
+            timer.Enabled = false;
         }
 
         void Record() {
@@ -121,5 +131,12 @@ namespace SoundsVisualization {
                 }
             }
         }
+
+        void OnTimedEvent(object? source, ElapsedEventArgs e) {
+            RunOnUiThread(() => {
+                txtHours!.Text = DateTime.Now.ToString("HH:mm");
+            });
+        }
+
     }
 }

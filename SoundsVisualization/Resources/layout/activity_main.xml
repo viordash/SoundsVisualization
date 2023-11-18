@@ -5,17 +5,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-<!--    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_centerInParent="true"
-        android:text="@string/app_text"
-    />-->
+        android:text="01:25"
+        android:elevation="2dp"
+        android:fontFamily="monospace"
+        android:textSize="120dp"
+        android:id="@+id/txtHours"
+        android:gravity="center"
+        android:textAlignment="center"
+        android:rotation="270"        
+    />
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="15dp"
-        android:background="#ff110033"
+        android:background="#ff070017"
         android:padding="5dp"
         android:rotation="180"
         android:id="@+id/imgSpectrogram"
