@@ -17,9 +17,6 @@ namespace SoundsVisualization {
         readonly Bitmap? bitmap;
         int yPos;
         readonly ArrayPool<System.Numerics.Complex> arrPoolComplex;
-        readonly double[] bandValues;
-        readonly int bandValuesHeight;
-        int bandValuesY;
 
         public Spectrogram(int sampleRate, double minFreq, double maxFreq, int fftSize, int stepSize, int height, double intensity) {
             this.fftSize = fftSize;
@@ -38,9 +35,6 @@ namespace SoundsVisualization {
             width = fftIndexMaxFreq - fftIndexMinFreq;
 
             pixels = new int[width * height];
-            bandValuesHeight = height / 8;
-            bandValues = new double[width * bandValuesHeight];
-            bandValuesY = 0;
 
             bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!);
             if(bitmap == null) {
@@ -49,17 +43,6 @@ namespace SoundsVisualization {
             yPos = 0;
 
             arrPoolComplex = ArrayPool<System.Numerics.Complex>.Create();
-        }
-
-        double GetAvgLineValue(int xLine) {
-            double avgValue = 0;
-            var start = Math.Max(xLine - 2, 0) * bandValuesHeight;
-            var len = Math.Min(5 * bandValuesHeight, bandValues.Length - start);
-            var values = bandValues.AsSpan(start, len);
-            foreach(var val in values) {
-                avgValue += val;
-            }
-            return avgValue / values.Length;
         }
 
         public void Process(Action<Bitmap> render) {
@@ -83,41 +66,15 @@ namespace SoundsVisualization {
                     _yPos = _yPos - height;
                 }
 
-                var valuableCount = 0;
-                var show = false;
                 for(int x = 0; x < width; x++) {
                     var fftVal = samples[fftIndexMinFreq + x].Magnitude / fftSize;
                     fftVal *= intensity;
 
-                    bandValues[x * bandValuesHeight + bandValuesY] = fftVal;
+                    fftVal = Math.Min(fftVal, 255);
 
-                    if(!show) {
-                        var avg = GetAvgLineValue(x);
-                        if(avg > 1.0 && fftVal > avg * 2.0) {
-                            valuableCount++;
-                            show = valuableCount > width / 5;
-                        }
-                    }
-                }
-
-                for(int x = 0; x < width; x++) {
-                    byte b;
-
-                    if(show) {
-                        var fftVal = bandValues[x * bandValuesHeight + bandValuesY];
-                        fftVal = Math.Min(fftVal, 255);
-                        b = (byte)fftVal;
-                    } else {
-                        b = 0;
-                    }
-
+                    var b = (byte)fftVal;
                     var alfa = (byte)0xFF;
                     pixels[x + _yPos * width] = (alfa << 24) + (0x07 << 16) + (b << 8) + (0x17 << 0);
-                }
-
-                bandValuesY++;
-                if(bandValuesY >= bandValuesHeight) {
-                    bandValuesY = 0;
                 }
 
                 arrPoolComplex.Return(samples);
