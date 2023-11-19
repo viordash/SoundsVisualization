@@ -40,7 +40,7 @@ namespace SoundsVisualization {
             if(bitmap == null) {
                 throw new ArgumentNullException(nameof(bitmap));
             }
-            yPos = 0;
+            yPos = height - 1;
 
             arrPoolComplex = ArrayPool<System.Numerics.Complex>.Create();
         }
@@ -61,9 +61,9 @@ namespace SoundsVisualization {
 
                 FftSharp.FFT.Forward(samples);
 
-                var _yPos = yPos + y;
-                if(_yPos >= height) {
-                    _yPos = _yPos - height;
+                var _yPos = yPos - y;
+                if(_yPos < 0) {
+                    _yPos = height + _yPos;
                 }
 
                 for(int x = 0; x < width; x++) {
@@ -80,9 +80,9 @@ namespace SoundsVisualization {
                 arrPoolComplex.Return(samples);
             }
 
-            yPos += fftsToProcess;
-            if(yPos >= height) {
-                yPos = yPos - height;
+            yPos -= fftsToProcess;
+            if(yPos < 0) {
+                yPos = height + yPos;
             }
 
             PcmData.RemoveRange(0, fftsToProcess * stepSize);

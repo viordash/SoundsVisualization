@@ -24,7 +24,6 @@
         android:layout_margin="15dp"
         android:background="#ff070017"
         android:padding="5dp"
-        android:rotation="180"
         android:id="@+id/imgSpectrogram"
         />
 </RelativeLayout>
